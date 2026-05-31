@@ -310,6 +310,46 @@ function createToken(user) {
   );
 }
 
+//SECURITY PERSONNEL HELPER FUNCTIONS
+
+function getExitAvailableAt(visit) {
+  if (!visit || !visit.securityApprovedAt) return null;
+  return new Date(new Date(visit.securityApprovedAt).getTime() + 30000);
+}
+
+function getExitRemainingSeconds(visit) {
+  const exitAvailableAt = getExitAvailableAt(visit);
+  if (!exitAvailableAt) return null;
+  return Math.max(0, Math.ceil((exitAvailableAt.getTime() - Date.now()) / 1000));
+}
+
+async function expireVisitIfNeeded(visit) {
+  if (!visit || visit.status === "Expired" || visit.status === "Cancelled" || visit.status === "Exited" || visit.status === "Completed") {
+    return visit;
+  }
+
+  const expiresAt = visit.expiresAt || getVisitDayEnd(visit.visitDate);
+  if (expiresAt && new Date() > expiresAt) {
+    visit.status = "Expired";
+    visit.expiresAt = expiresAt;
+    await visit.save();
+  }
+
+  return visit;
+}
+
+async function expireOldPasses(filter = {}) {
+  const now = new Date();
+  await VisitRequest.updateMany(
+    {
+      ...filter,
+      expiresAt: { $ne: null, $lt: now },
+      status: { $nin: ["Expired", "Cancelled", "Exited", "Completed"] }
+    },
+    { $set: { status: "Expired" } }
+  );
+}
+
 /* ---------------- FRONTEND ROUTES ---------------- */
 const frontendRoutes = {
 
