@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Security Entry and Exit History</title>
+  <link rel="stylesheet" href="/css/security-history.css">
+<link rel="stylesheet" href="/css/mobile.css" />
+</head>
+<body>
+  <div class="topbar">
+    <h2>Entry and Exit History</h2>
+    <div class="btns">
+      <a href="/security-dashboard.html">Scanner</a>
+      <a href="/security-personnel-profile.html">Profile</a>
+      <button type="button" data-action-code="refreshSecurityHistory()">Refresh</button>
+      <button data-action-code="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Entry and Exit History</h3>
+    <div id="historyList"></div>
+  </div>
+  <script src="/js/security-history.js"></script>
+<script src="/js/session.js"></script>
+</body>
+</html>
