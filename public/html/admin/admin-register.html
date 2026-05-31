@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Create Admin</title>
+  <link rel="stylesheet" href="/css/admin-register.css">
+<link rel="stylesheet" href="/css/mobile.css" />
+</head>
+<body>
+  <div class="box">
+    <h2>Create Admin</h2>
+    <form id="adminForm">
+      <input type="text" id="fullName" placeholder="Full Name" required />
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <input type="date" id="birthDate" required />
+      <textarea id="address" rows="3" placeholder="Address" required></textarea>
+      <input type="file" id="photo" accept="image/*" />
+      <button type="submit">Create Admin</button>
+    </form>
+    <div class="message" id="message"></div>
+    <a href="/admin-dashboard.html">Back to Dashboard</a>
+  </div>
+  <script src="/js/admin-register.js"></script>
+<script src="/js/session.js"></script>
+</body>
+</html>

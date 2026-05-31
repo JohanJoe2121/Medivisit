@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="/css/admin.css">
+<link rel="stylesheet" href="/css/mobile.css" />
+</head>
+<body class="admin-page">
+  <div class="topbar">
+
+    <div class="menu-wrap">
+      <button class="menu-button" type="button" data-action-code="toggleMenu()" aria-label="Open menu">&#9776;</button>
+      <div class="menu" id="adminMenu">
+        <button type="button" data-action-code="showAdminPanel('dashboard')"> Manage Users</button>
+        <button type="button" data-action-code="showAdminPanel('requests')"> All Visit Requests</button>
+        <button type="button" data-action-code="showAdminPanel('assign')"> Assign Doctors</button>
+        <button type="button" data-action-code="showAdminPanel('settings')"> Hospital Settings</button>
+        <button type="button" data-action-code="showAdminPanel('activity')"> System Activity</button>
+        <button type="button" data-action-code="showAdminPanel('complaints')"> User Complaints</button>
+        <button type="button" data-action-code="showAdminPanel('profile')">Profile</button>
+        <a href="/admin-register.html"> Create Admin</a>
+        <button type="button" data-action-code="logout()">⏻ Logout</button>
+        </div>
+      </div>
+
+    <h2>Admin Dashboard</h2>
+
+    <button class="icon-btn" type="button" data-action-code="loadDashboard()" aria-label="Refresh dashboard">↻</button>
+  </div>
+
+  <div class="section" id="dashboardPanel">
+    <h3>Manage Users</h3>
+    <p class="muted">This is the main admin function on the dashboard. All visit requests and other admin controls are inside the menu.</p>
+    <button type="button" class="btn" data-action-code="loadUsers()">Load Users</button>
+    <button type="button" class="btn secondary-btn" data-action-code="printUsersPdf()">Print Users PDF</button>
+    <div id="userList"></div>
+  </div>
+
+  <div class="section hidden" id="assignPanel">
+    <h3>Assign Patients to Doctors</h3>
+    <button type="button" class="btn" data-action-code="loadDoctorsAndPatients()">Show Doctors and Unassigned Patients</button>
+    <div id="doctorAssignBox"></div>
+  </div>
+
+  <div class="section hidden" id="requestsPanel">
+    <h3>View Requests</h3>
+    <div id="requestListMenu"></div>
+  </div>
+
+  <div class="section hidden" id="settingsPanel">
+    <h3>Hospital Rules and Settings</h3>
+    <div class="toolbar">
+      <button type="button" class="btn secondary-btn" data-action-code="loadSettings()">Load Settings</button>
+      <button type="button" class="btn" data-action-code="saveSettings()">Save Settings</button>
+    </div>
+
+    <div class="grid">
+      <label>
+        Visiting Hours Start
+        <input type="time" id="visitingHoursStart" />
+      </label>
+      <label>
+        Visiting Hours End
+        <input type="time" id="visitingHoursEnd" />
+      </label>
+      <label>
+        Visitor Limit Per Patient
+        <input type="number" id="visitorLimitPerPatient" min="1" />
+      </label>
+      <label>
+        Visit Duration Minutes
+        <input type="number" id="visitDurationMinutes" min="1" />
+      </label>
+    </div>
+
+    <label>
+      Time Slots
+      <textarea id="timeSlots" rows="4" placeholder="One time slot per line"></textarea>
+    </label>
+
+    <label>
+      Allowed Visiting Days
+      <select id="allowedVisitingDays" multiple size="7">
+        <option value="0">Sunday</option>
+        <option value="1">Monday</option>
+        <option value="2">Tuesday</option>
+        <option value="3">Wednesday</option>
+        <option value="4">Thursday</option>
+        <option value="5">Friday</option>
+        <option value="6">Saturday</option>
+      </select>
+    </label>
+
+    <label>
+      <input type="checkbox" id="emergencyRestrictionsEnabled" class="inline-checkbox" />
+      Emergency visitor restrictions enabled
+    </label>
+
+    <label>
+      Emergency Restriction Message
+      <textarea id="emergencyRestrictionMessage" rows="3" placeholder="Restriction message"></textarea>
+    </label>
+
+    <div id="settingsResult"></div>
+  </div>
+
+  <div class="section hidden" id="activityPanel">
+    <h3>System Activity</h3>
+    <div class="toolbar activity-toolbar">
+      <button type="button" class="btn" data-action-code="loadSystemActivity()">Monitor System Activity</button>
+      <label>
+        From
+        <input type="date" id="activityFromDate" />
+      </label>
+      <label>
+        To
+        <input type="date" id="activityToDate" />
+      </label>
+      <button type="button" class="btn secondary-btn" data-action-code="printActivityPdf()">Print Activity PDF</button>
+    </div>
+    <div id="activityBox"></div>
+  </div>
+
+  <div class="section hidden" id="complaintsPanel">
+    <h3>User Complaints</h3>
+    <div class="toolbar complaint-tabs">
+      <button type="button" class="btn secondary-btn" id="complaintsTabOpen" data-action-code="loadComplaints('Open')">Open</button>
+      <button type="button" class="btn secondary-btn" id="complaintsTabInProgress" data-action-code="loadComplaints('In Progress')">In Progress</button>
+      <button type="button" class="btn secondary-btn" id="complaintsTabResolved" data-action-code="loadComplaints('Resolved')">Resolved</button>
+    </div>
+    <div id="complaintList"></div>
+  </div>
+
+  <div class="section hidden" id="profilePanel">
+    <h3>Profile</h3>
+    <form id="profileForm">
+      <input type="text" id="profileFullName" placeholder="Full name" required />
+      <input type="email" id="profileEmail" placeholder="Email" disabled />
+      <input type="date" id="profileBirthDate" required />
+      <textarea id="profileAddress" rows="3" placeholder="Address" required></textarea>
+      <button type="submit" class="btn">Update Profile</button>
+    </form>
+    <button type="button" id="deleteAccountBtn" class="reject-btn action-btn" data-action-code="deleteMyAccount()">Delete My Account</button>
+    <div id="profilePhotoPreview"></div>
+    <div id="profileMessage"></div>
+  </div>
+  <script src="/js/admin.js"></script>
+<script src="/js/session.js"></script>
+</body>
+</html>
