@@ -1711,7 +1711,7 @@ app.patch("/api/admin/escalations/:id/resolve", auth, allowRoles("admin"), async
   }
 });
 
-// Doctor
+/* ---------------- DOCTOR---------------- */
 app.get("/api/doctor/my-patients", auth, allowRoles("doctor"), async (req, res) => {
   const patients = await User.find({
     role: "patient",
@@ -1768,6 +1768,7 @@ app.patch("/api/doctor/patients/:patientId/visit-rules", auth, allowRoles("docto
 
 /* ---------------- FRONTEND ROUTES ---------------- */
 const frontendRoutes = {
+  "/": ["common", "index.html"],
 "/login": ["common", "login.html"],
   "/register": ["common", "register.html"],
   "/login.html": ["common", "login.html"],
@@ -1787,6 +1788,9 @@ const frontendRoutes = {
   "/doctor-register.html": ["common", "doctor-register.html"],
 "/doctor-dashboard.html": ["doctor", "doctor.html"],
   "/doctor.html": ["doctor", "doctor.html"],
+  "/admin-dashboard.html": ["admin", "admin.html"],
+  "/admin.html": ["admin", "admin.html"],
+  "/admin-register.html": ["admin", "admin-register.html"]
 };
 
 for (const [route, fileParts] of Object.entries(frontendRoutes)) {
