@@ -1,0 +1,348 @@
+html, body { -webkit-text-size-adjust: 100%; }
+img, svg, video, canvas { max-width: 100%; height: auto; }
+* { box-sizing: border-box; }
+
+.profile-photo-preview-img {
+  max-width: 140px;
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
+.user-detail-photo {
+  width: 110px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.activity-subtitle {
+  margin-top: 14px;
+}
+
+button[data-action-code="logout()"] {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+button[data-action-code="logout()"]::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'/%3E%3Cpolyline points='16 17 21 12 16 7'/%3E%3Cline x1='21' x2='9' y1='12' y2='12'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'/%3E%3Cpolyline points='16 17 21 12 16 7'/%3E%3Cline x1='21' x2='9' y1='12' y2='12'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.menu-wrap {
+  position: relative;
+}
+
+.menu-button {
+  width: 44px;
+  height: 44px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: 52px;
+  min-width: 190px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+  padding: 8px;
+  display: none;
+  z-index: 10;
+}
+
+.menu.open {
+  display: block;
+}
+
+.menu a,
+.menu button {
+  display: block !important;
+  width: 100%;
+  padding: 10px 12px;
+  margin: 2px 0 !important;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s ease;
+
+  color: #111827;  
+  text-decoration: none; 
+}
+
+.menu a:hover,
+.menu button:hover {
+  background: #eff6ff;
+}
+
+.menu button:last-child {
+  color: #dc2626;
+}
+
+.menu button:last-child:hover {
+  background: #fee2e2;
+}
+
+/* Make any fixed-width container fluid */
+.box, .container, .section, .topbar, .card {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Tables (if any) become horizontally scrollable */
+table { width: 100%; border-collapse: collapse; }
+.table-wrap, .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* QR / scanner videos and canvases */
+#reader, #qr-reader, video, canvas { max-width: 100% !important; height: auto !important; }
+
+/* ---------- Tablet & phone ---------- */
+@media (max-width: 768px) {
+  body { padding: 12px !important; font-size: 15px; }
+
+  .box, .container, .section {
+    max-width: 100% !important;
+    margin: 12px 0 !important;
+    padding: 16px !important;
+    border-radius: 12px !important;
+  }
+
+  /* Topbar stacks vertically */
+  .topbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px;
+    padding: 14px !important;
+    text-align: center;
+  }
+  .topbar h1, .topbar h2, .topbar h3 { margin: 0 0 4px 0; font-size: 1.15rem; }
+
+  /* Button group wraps and fills width */
+  .btns, .btn-group {
+    display: flex !important;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+  }
+  .btns a, .btns button, .btn-group a, .btn-group button {
+    margin: 0 !important;
+    flex: 1 1 45%;
+    min-width: 120px;
+    text-align: center;
+    padding: 12px 10px !important;
+    font-size: 15px;
+  }
+
+  /* Forms */
+  input, select, textarea, button {
+    width: 100% !important;
+    font-size: 16px !important; /* prevents iOS zoom */
+    box-sizing: border-box;
+  }
+  /* Inline check button etc. */
+  #checkingButton { width: 100% !important; margin-top: 10px; }
+
+  /* Cards & request items */
+  .card { padding: 14px !important; }
+  .card .action, .action {
+    display: inline-block;
+    margin: 6px 4px 0 0;
+    padding: 10px 12px;
+  }
+
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.1rem; }
+}
+
+/* ---------- Small phones ---------- */
+@media (max-width: 420px) {
+  .btns a, .btns button, .btn-group a, .btn-group button {
+    flex: 1 1 100%;
+  }
+  body { padding: 8px !important; }
+  .section, .box { padding: 14px !important; }
+}
+
+#checkingButton {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none !important;
+  width: auto !important;
+  display: inline-block !important;
+}
+
+#checkingButton:hover {
+  background: #1d4ed8 !important;
+}
+
+#patientName {
+  margin-bottom: 10px;
+}
+
+#checkingButton {
+  margin-top: 5px;
+}
+
+@media (max-width: 768px) {
+  .admin-page {
+    padding: 8px !important;
+    font-size: 14px !important;
+  }
+
+  .admin-page .topbar {
+    display: grid !important;
+    grid-template-columns: 36px 1fr 36px !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 10px 12px !important;
+    border-radius: 10px !important;
+    margin-bottom: 12px !important;
+    text-align: initial !important;
+  }
+
+  .admin-page .topbar > h2 {
+    grid-column: 2 !important;
+    margin: 0 !important;
+    text-align: center !important;
+    font-size: 17px !important;
+    line-height: 1.2 !important;
+  }
+
+  .admin-page .topbar > .menu-wrap,
+  .admin-page .topbar > .icon-btn {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .admin-page .topbar > .menu-wrap {
+    grid-column: 1 !important;
+  }
+
+  .admin-page .topbar > .icon-btn {
+    grid-column: 3 !important;
+    justify-self: end !important;
+  }
+
+  .admin-page .menu-button,
+  .admin-page .icon-btn {
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    font-size: 15px !important;
+  }
+
+  .admin-page .menu {
+    left: 0 !important;
+    right: auto !important;
+    top: 40px !important;
+    min-width: 220px !important;
+  }
+
+  .admin-page .section {
+    padding: 12px !important;
+    margin: 10px 0 !important;
+    border-radius: 10px !important;
+  }
+
+  .admin-page .section h3 {
+    font-size: 16px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .admin-page .toolbar {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    margin-top: 8px !important;
+  }
+
+  .admin-page .activity-toolbar > .btn:first-child,
+  .admin-page .activity-toolbar > .btn:last-child {
+    grid-column: 1 / -1 !important;
+  }
+
+  .admin-page .complaint-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .admin-page .complaint-tabs .btn {
+    white-space: normal !important;
+  }
+
+  .admin-page .toolbar label {
+    margin-top: 0 !important;
+    min-width: 0 !important;
+    font-size: 13px !important;
+  }
+
+  .admin-page input,
+  .admin-page textarea,
+  .admin-page select {
+    padding: 8px !important;
+    margin-top: 6px !important;
+    border-radius: 8px !important;
+    font-size: 16px !important;
+  }
+
+  .admin-page .btn,
+  .admin-page .action-btn {
+    width: 100% !important;
+    padding: 9px 10px !important;
+    margin-top: 0 !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+  }
+
+  .admin-page .card {
+    padding: 12px !important;
+    margin-top: 10px !important;
+    border-radius: 10px !important;
+  }
+
+  .admin-page .card p {
+    margin: 6px 0 !important;
+    font-size: 14px !important;
+    line-height: 1.35 !important;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 420px) {
+  .admin-page {
+    padding: 6px !important;
+  }
+
+  .admin-page .topbar > h2 {
+    font-size: 16px !important;
+  }
+
+  .admin-page .section {
+    padding: 11px !important;
+  }
+}
