@@ -1,0 +1,54 @@
+body {
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      padding: 30px;
+      margin: 0;
+    }
+    .box {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 25px;
+      border-radius: 14px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+    h2 {
+      color: #2563eb;
+      margin-top: 0;
+    }
+    p {
+      line-height: 1.8;
+      text-align: left;
+    }
+    .qr-code {
+      width: 220px;
+      height: 220px;
+      margin: 16px auto;
+      display: block;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px;
+      background: white;
+    }
+    .pass-code {
+      font-size: 22px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+    .message {
+      text-align: center;
+      color: #dc2626;
+      font-weight: bold;
+    }
+    a {
+      display: inline-block;
+      margin-top: 15px;
+      text-decoration: none;
+      background: #2563eb;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
