@@ -32,6 +32,8 @@ mongoose
     process.exit(1);
   });
 
+//VISITOR HELPER FUNCTIONS
+
 function addClient(clientMap, key, res) {
   const clientKey = String(key);
   const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -76,6 +78,32 @@ async function getEventUser(req) {
   if (!token) return null;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   return User.findById(decoded.id).select("-password");
+}
+
+//PATIENT HELPER FUNCTIONS
+
+function generatePassCode() {
+  return "PASS-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function generatePatientVisitorCode() {
+  return "PAT-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+async function createUniquePatientVisitorCode() {
+  let code = generatePatientVisitorCode();
+  let existing = await User.findOne({ patientVisitorCode: code });
+
+  while (existing) {
+    code = generatePatientVisitorCode();
+    existing = await User.findOne({ patientVisitorCode: code });
+  }
+
+  return code;
 }
 
 
