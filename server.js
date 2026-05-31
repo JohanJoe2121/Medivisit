@@ -845,6 +845,149 @@ app.patch("/api/visit-requests/:id/cancel", auth, allowRoles("visitor", "admin")
   }
 });
 
+//PATIENT
+
+app.post("/api/patient/visitor-code", auth, allowRoles("patient"), async (req, res) => {
+  try {
+    const patient = await User.findOne({ _id: req.user.id, role: "patient" }).select("-password");
+    if (!patient) {
+      return res.status(404).json({ message: "Patient not found." });
+    }
+
+    patient.patientVisitorCode = await createUniquePatientVisitorCode();
+    await patient.save();
+
+    return res.json({
+      message: "New visitor code generated successfully.",
+      patientVisitorCode: patient.patientVisitorCode
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to generate visitor code.", error: error.message });
+  }
+});
+
+// View requests for review
+app.get("/api/visit-requests/review", auth, allowRoles("patient", "doctor", "admin"), async (req, res) => {
+  try {
+    await expireOldPasses();
+    const filter = {};
+
+    if (req.user.role === "patient") {
+      filter.$or = [
+        { patientId: req.user.id },
+        { patientName: { $regex: `^${escapeRegex(req.user.fullName)}$`, $options: "i" } }
+      ];
+
+      if (req.query.history === "full") {
+        filter.$and = [
+          {
+            $or: [
+              { status: { $in: ["Approved by Patient", "Approved by Doctor", "Approved by Security", "Rejected by Patient", "Rejected by Doctor", "Expired", "Cancelled"] } },
+              { exitedAt: { $ne: null } }
+            ]
+          }
+        ];
+      } else {
+        filter.status = "Pending";
+      }
+
+      const query = VisitRequest.find(filter).sort({ createdAt: -1 });
+      if (req.query.history !== "full") query.limit(5);
+      const requests = await query;
+      return res.json(requests);
+    }
+
+    const requests = await VisitRequest.find(filter).sort({ createdAt: -1 });
+    return res.json(requests);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch requests.", error: error.message });
+  }
+});
+
+app.get("/api/visit-requests/review/events", async (req, res) => {
+  try {
+    const user = await getEventUser(req);
+    if (!user || user.role !== "patient") {
+      return res.status(401).end();
+    }
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders?.();
+
+    const clientId = addClient(patientReviewClients, user._id, res);
+    const requests = await VisitRequest.find({
+      $or: [
+        { patientId: user._id },
+        { patientName: { $regex: `^${escapeRegex(user.fullName)}$`, $options: "i" } }
+      ],
+      status: "Pending"
+    }).sort({ createdAt: -1 }).limit(5);
+    sendEvent(res, "patient-requests-updated", requests);
+
+    req.on("close", () => {
+      removeClient(patientReviewClients, user._id, clientId);
+    });
+  } catch (error) {
+    return res.status(401).end();
+  }
+});
+
+// Approve / reject request
+app.patch("/api/visit-requests/:id/status", auth, allowRoles("patient", "doctor"), async (req, res) => {
+  try {
+    const { status } = req.body;
+    const requestId = req.params.id;
+
+    const allowedStatuses = [
+      "Approved by Patient",
+      "Rejected by Patient",
+      "Approved by Doctor",
+      "Rejected by Doctor"
+    ];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status value." });
+    }
+
+    const visitRequest = await VisitRequest.findById(requestId);
+    if (!visitRequest) {
+      return res.status(404).json({ message: "Visit request not found." });
+    }
+
+    if (req.user.role === "patient" && !status.includes("Patient")) {
+      return res.status(403).json({ message: "Patients can only apply patient status changes." });
+    }
+
+    if (req.user.role === "patient") {
+      const matchesPatient = visitRequest.patientId
+        ? visitRequest.patientId.toString() === req.user.id
+        : visitRequest.patientName.toLowerCase() === req.user.fullName.toLowerCase();
+
+      if (!matchesPatient) {
+        return res.status(403).json({ message: "Patients can only update their own visit requests." });
+      }
+    }
+
+    if (req.user.role === "doctor" && !status.includes("Doctor")) {
+      return res.status(403).json({ message: "Doctors can only apply doctor status changes." });
+    }
+
+    visitRequest.status = status;
+    visitRequest.passCode = status.startsWith("Approved") ? generatePassCode() : "";
+    visitRequest.expiresAt = status.startsWith("Approved") ? getVisitDayEnd(visitRequest.visitDate) : null;
+    await visitRequest.save();
+    notifyVisitRequestChange(visitRequest);
+
+    return res.json({
+      message: "Visit request updated successfully.",
+      visitRequest
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update visit request.", error: error.message });
+  }
+});
 
 /* ---------------- FRONTEND ROUTES ---------------- */
 const frontendRoutes = {
