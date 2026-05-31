@@ -989,6 +989,221 @@ app.patch("/api/visit-requests/:id/status", auth, allowRoles("patient", "doctor"
   }
 });
 
+//SECURITY PERSONNEL
+app.get("/api/security/approved-visits", auth, allowRoles("security"), async (req, res) => {
+  try {
+    await expireOldPasses();
+    const approvedVisits = await VisitRequest.find({
+      $or: [
+        { verifiedBySecurity: true },
+        { exitedAt: { $ne: null } },
+        { status: "Expired" }
+      ]
+    }).sort({ createdAt: -1 });
+    return res.json(approvedVisits);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch approved visits.", error: error.message });
+  }
+});
+
+app.get("/api/security/current-checkins", auth, allowRoles("security"), async (req, res) => {
+  try {
+    await expireOldPasses();
+    const visits = await VisitRequest.find({
+      securityApprovedAt: { $ne: null },
+      exitedAt: null,
+      status: { $nin: ["Cancelled", "Expired", "Exited", "Completed"] }
+    }).sort({ securityApprovedAt: -1 });
+
+    return res.json(visits.map(visit => ({
+      ...visit.toObject(),
+      exitAvailableAt: getExitAvailableAt(visit),
+      exitRemainingSeconds: getExitRemainingSeconds(visit)
+    })));
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch current check-ins.", error: error.message });
+  }
+});
+
+app.get("/api/security/checkout-history", auth, allowRoles("security"), async (req, res) => {
+  try {
+    await expireOldPasses();
+    const visits = await VisitRequest.find({
+      $or: [
+        { exitedAt: { $ne: null } },
+        { status: { $in: ["Exited", "Completed"] } }
+      ]
+    }).sort({ exitedAt: -1, updatedAt: -1 });
+
+    return res.json(visits);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch check-out history.", error: error.message });
+  }
+});
+
+// Verify pass code
+app.post("/api/security/check-pass", auth, allowRoles("security"), async (req, res) => {
+  try {
+    const { passCode } = req.body;
+
+    if (!passCode) {
+      return res.status(400).json({ message: "Pass code is required." });
+    }
+
+    const visit = await VisitRequest.findOne({ passCode: passCode.trim().toUpperCase() });
+
+    if (!visit) {
+      return res.status(404).json({ message: "Invalid pass code." });
+    }
+
+    await expireVisitIfNeeded(visit);
+
+    if (visit.status === "Cancelled") {
+      return res.status(409).json({ message: "Pass cancelled.", visit });
+    }
+
+    if (visit.status === "Expired") {
+      return res.status(409).json({ message: "Pass expired.", visit });
+    }
+
+    if (visit.status === "Exited" || visit.status === "Completed" || visit.exitedAt) {
+      return res.status(409).json({ message: "Visitor already exited. This pass cannot be used again.", visit });
+    }
+
+    return res.json({
+      message: "Valid pass.",
+      visit,
+      exitAvailableAt: getExitAvailableAt(visit),
+      exitRemainingSeconds: getExitRemainingSeconds(visit)
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Pass check failed.", error: error.message });
+  }
+});
+
+// Approve scanned pass code
+app.post("/api/security/verify-pass", auth, allowRoles("security"), async (req, res) => {
+  try {
+    const { passCode } = req.body;
+
+    if (!passCode) {
+      return res.status(400).json({ message: "Pass code is required." });
+    }
+
+    const visit = await VisitRequest.findOne({ passCode: passCode.trim().toUpperCase() });
+
+    if (!visit) {
+      return res.status(404).json({ message: "Invalid pass code." });
+    }
+
+    await expireVisitIfNeeded(visit);
+
+    if (visit.status === "Cancelled") {
+      return res.status(409).json({ message: "Pass is cancelled.", visit });
+    }
+
+    if (visit.status === "Expired") {
+      return res.status(409).json({ message: "Pass is expired.", visit });
+    }
+
+    if (visit.status === "Exited" || visit.status === "Completed" || visit.exitedAt) {
+      return res.status(409).json({ message: "Visitor already exited. This pass cannot be used for another entry.", visit });
+    }
+
+    if (visit.verifiedBySecurity || visit.securityApprovedAt) {
+      return res.status(409).json({
+        message: "Visitor is already checked in. Use the exit action after the timer ends.",
+        visit,
+        exitAvailableAt: getExitAvailableAt(visit),
+        exitRemainingSeconds: getExitRemainingSeconds(visit)
+      });
+    }
+
+    const settings = await getHospitalSettings();
+    if (settings.emergencyRestrictionsEnabled && !visit.verifiedBySecurity) {
+      return res.status(403).json({
+        message: settings.emergencyRestrictionMessage || "Emergency restrictions are active. Future entries are blocked.",
+        visit
+      });
+    }
+
+    visit.verifiedBySecurity = true;
+    visit.status = "Approved by Security";
+    visit.securityApprovedAt = visit.securityApprovedAt || new Date();
+    visit.expiresAt = visit.expiresAt || getVisitDayEnd(visit.visitDate);
+    await visit.save();
+    notifyVisitRequestChange(visit);
+
+    return res.json({
+      message: "Pass approved by security.",
+      visit,
+      exitAvailableAt: getExitAvailableAt(visit),
+      exitRemainingSeconds: getExitRemainingSeconds(visit)
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Pass verification failed.", error: error.message });
+  }
+});
+
+// Mark approved visitor as exited and expire the pass
+app.post("/api/security/exit-pass", auth, allowRoles("security"), async (req, res) => {
+  try {
+    const { passCode } = req.body;
+
+    if (!passCode) {
+      return res.status(400).json({ message: "Pass code is required." });
+    }
+
+    const visit = await VisitRequest.findOne({ passCode: passCode.trim().toUpperCase() });
+
+    if (!visit) {
+      return res.status(404).json({ message: "Invalid pass code." });
+    }
+
+    await expireVisitIfNeeded(visit);
+
+    if (visit.status === "Cancelled") {
+      return res.status(409).json({ message: "Pass is cancelled.", visit });
+    }
+
+    if (visit.status === "Expired") {
+      return res.status(409).json({ message: "Pass is already expired.", visit });
+    }
+
+    if (visit.status === "Exited" || visit.status === "Completed" || visit.exitedAt) {
+      return res.status(409).json({ message: "Visitor has already exited.", visit });
+    }
+
+    if (!visit.verifiedBySecurity || !visit.securityApprovedAt) {
+      return res.status(400).json({ message: "Pass must be approved by security before exit.", visit });
+    }
+
+    const remainingSeconds = getExitRemainingSeconds(visit);
+    if (remainingSeconds > 0) {
+      return res.status(409).json({
+        message: `Exit available in ${remainingSeconds} seconds.`,
+        visit,
+        exitAvailableAt: getExitAvailableAt(visit),
+        exitRemainingSeconds: remainingSeconds
+      });
+    }
+
+    visit.exitedAt = new Date();
+    visit.status = "Exited";
+    await visit.save();
+    notifyVisitRequestChange(visit);
+
+    return res.json({
+      message: "Visitor exit recorded.",
+      visit,
+      exitAvailableAt: getExitAvailableAt(visit),
+      exitRemainingSeconds: 0
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to record exit.", error: error.message });
+  }
+});
+
 /* ---------------- FRONTEND ROUTES ---------------- */
 const frontendRoutes = {
 
