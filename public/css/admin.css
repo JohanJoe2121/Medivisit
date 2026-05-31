@@ -1,0 +1,380 @@
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { background: #faf5ff; color: #111827; min-height: 100vh; padding: 20px; }
+    button, a, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+
+    .topbar {
+      background: #7c3aed;
+      color: white;
+      padding: 15px 20px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 8px 24px rgba(124, 58, 237, 0.22);
+    }
+
+    .title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .topbar h2 {
+      font-size: 24px;
+      white-space: nowrap;
+    }
+
+    .icon-btn {
+      width: 42px;
+      height: 42px;
+      border: none;
+      border-radius: 12px;
+      background: white;
+      color: #7c3aed;
+      font-weight: bold;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.25s ease;
+      flex: 0 0 auto;
+    }
+
+    .icon-btn:hover {
+      transform: translateY(-2px);
+      opacity: 0.9;
+    }
+
+    .menu-wrap {
+      position: relative;
+    }
+
+    .menu-button {
+      width: 34px;
+      height: 34px;
+      background: white;
+      color: #7c3aed;
+      border: none;
+      border-radius: 10px;
+      font-size: 17px;
+      font-weight: bold;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 2px;
+    }
+
+    .menu {
+      position: absolute;
+      right: 0;
+      top: 54px;
+      min-width: 250px;
+      background: white;
+      border: 1px solid #ddd6fe;
+      border-radius: 14px;
+      box-shadow: 0 12px 28px rgba(88, 28, 135, 0.18);
+      padding: 8px;
+      display: none;
+      z-index: 50;
+      animation: menuDrop 0.22s ease;
+    }
+
+    .menu.open {
+      display: block;
+    }
+
+    .menu a,
+    .menu button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      text-decoration: none;
+      background: white;
+      color: #7c3aed;
+      border: none;
+      border-radius: 10px;
+      padding: 11px 12px;
+      font-weight: bold;
+      text-align: left;
+      margin: 0;
+      transition: 0.22s ease;
+    }
+
+    .menu a:hover,
+    .menu button:hover {
+      background: #ede9fe;
+      transform: translateX(4px);
+    }
+
+    .section {
+      background: white;
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 16px;
+      border: 1px solid #ede9fe;
+      box-shadow: 0 8px 24px rgba(88, 28, 135, 0.08);
+      animation: fadeUp 0.35s ease;
+    }
+
+    .section h3 {
+      color: #581c87;
+      margin-bottom: 10px;
+    }
+
+    .card {
+      border: 1px solid #e9d5ff;
+      border-radius: 14px;
+      padding: 14px;
+      margin-top: 12px;
+      background: #faf5ff;
+    }
+
+    .card p {
+      margin: 7px 0;
+      line-height: 1.4;
+    }
+
+    .btn,
+    .action-btn {
+      background: #7c3aed;
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: 0.22s ease;
+    }
+
+    .btn:hover,
+    .action-btn:hover {
+      transform: translateY(-2px);
+      opacity: 0.92;
+    }
+
+    .approve-btn { background: #16a34a; }
+    .reject-btn { background: #dc2626; }
+    .secondary-btn { background: #ede9fe; color: #581c87; }
+
+    .hidden { display: none; }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      color: #374151;
+      margin-top: 12px;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 10px;
+      border: 1px solid #ddd6fe;
+      box-sizing: border-box;
+      background: white;
+    }
+
+    .inline-checkbox {
+      width: auto;
+      margin-right: 8px;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+    }
+
+    .table-wrap {
+      margin-top: 12px;
+      overflow-x: auto;
+      border-radius: 14px;
+      border: 1px solid #ede9fe;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      min-width: 720px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid #ede9fe;
+      padding: 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #faf5ff;
+      color: #581c87;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .muted {
+      color: #6b7280;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes menuDrop {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media(max-width: 700px) {
+      body { padding: 14px; }
+      .topbar { align-items: center; gap: 10px; }
+      .title-wrap { gap: 8px; }
+      .topbar h2 { font-size: 21px; }
+      .menu { right: 0; min-width: 235px; }
+    }
+
+    @media(max-width: 420px) {
+      .title-wrap { gap: 6px; }
+      .topbar h2 { font-size: 19px; }
+      .icon-btn { width: 40px; height: 40px; }
+      .menu-button { width: 32px; height: 32px; font-size: 16px; }
+    }
+  
+    /* Final layout fix: menu left, title center, refresh right */
+    .topbar {
+      display: grid !important;
+      grid-template-columns: 44px 1fr 44px !important;
+      align-items: center !important;
+      gap: 12px !important;
+      padding: 15px 20px !important;
+    }
+
+    .topbar > h2 {
+      grid-column: 2 !important;
+      text-align: center !important;
+      margin: 0 !important;
+      font-size: 24px !important;
+      line-height: 1.2 !important;
+      white-space: nowrap !important;
+    }
+
+    .topbar > .menu-wrap {
+      grid-column: 1 !important;
+      position: relative !important;
+      width: 44px !important;
+      height: 44px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    .topbar > .icon-btn {
+      grid-column: 3 !important;
+      width: 44px !important;
+      height: 44px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    .menu-button {
+      width: 36px !important;
+      height: 36px !important;
+      min-width: 36px !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border-radius: 10px !important;
+      font-size: 18px !important;
+      line-height: 1 !important;
+    }
+
+    .menu {
+      left: 0 !important;
+      right: auto !important;
+      top: 52px !important;
+      min-width: 245px !important;
+      max-width: calc(100vw - 32px) !important;
+      z-index: 9999 !important;
+      overflow: hidden !important;
+    }
+
+    .menu a,
+    .menu button {
+      min-height: 44px !important;
+      width: 100% !important;
+      padding: 11px 12px !important;
+      margin: 0 !important;
+      font-size: 15px !important;
+      white-space: nowrap !important;
+    }
+
+    @media(max-width: 700px) {
+      body {
+        padding: 14px !important;
+      }
+
+      .topbar {
+        grid-template-columns: 40px 1fr 40px !important;
+        padding: 14px 16px !important;
+        gap: 8px !important;
+      }
+
+      .topbar > h2 {
+        font-size: 20px !important;
+      }
+
+      .topbar > .menu-wrap,
+      .topbar > .icon-btn {
+        width: 40px !important;
+        height: 40px !important;
+      }
+
+      .menu-button {
+        width: 34px !important;
+        height: 34px !important;
+        min-width: 34px !important;
+        font-size: 17px !important;
+      }
+
+      .menu {
+        left: 0 !important;
+        right: auto !important;
+        top: 48px !important;
+        min-width: 235px !important;
+      }
+    }
+
+    @media(max-width: 380px) {
+      .topbar > h2 {
+        font-size: 18px !important;
+      }
+    }

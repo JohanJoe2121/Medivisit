@@ -1,0 +1,7 @@
+body { font-family: Arial, sans-serif; background: #f3f4f6; padding: 30px; margin: 0; }
+    .box { max-width: 520px; margin: auto; background: white; padding: 25px; border-radius: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+    h2 { color: #111827; text-align: center; }
+    input, button, textarea { width: 100%; padding: 12px; margin-top: 12px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
+    button { background: #7c3aed; color: white; border: none; font-weight: bold; cursor: pointer; }
+    a { display: inline-block; margin-top: 15px; text-decoration: none; background: #7c3aed; color: white; padding: 10px 16px; border-radius: 8px; }
+    .message { margin-top: 12px; text-align: center; font-weight: bold; }
