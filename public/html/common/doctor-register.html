@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Doctor Register</title>
+  <link rel="stylesheet" href="/css/doctor-register.css">
+<link rel="stylesheet" href="/css/mobile.css" />
+</head>
+<body>
+  <div class="box">
+    <h2>Doctor Registration</h2>
+    <form id="registerForm">
+      <input type="text" id="fullName" placeholder="Full Name" required />
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <input type="date" id="birthDate" required />
+      <textarea id="address" placeholder="Address" rows="3" required></textarea>
+      <input type="file" id="photo" accept="image/*" />
+      <button type="submit">Register</button>
+    </form>
+    <div class="message" id="message"></div>
+    <div class="link">Already have an account? <a href="/login.html">Login here</a></div>
+  </div>
+  <script src="/js/doctor-register.js"></script>
+</body>
+</html>

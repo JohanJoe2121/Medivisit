@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Doctor Dashboard</title>
+  <link rel="stylesheet" href="/css/doctor.css">
+<link rel="stylesheet" href="/css/mobile.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="menu-wrap">
+      <button class="menu-button" type="button" data-action-code="toggleMenu()" aria-label="Open menu">&#9776;</button>
+      <div class="menu" id="dashboardMenu">
+        <button type="button" data-action-code="showPanel('patientsPanel'); loadMyPatients();">My Assigned Patients</button>
+        <button type="button" data-action-code="showPanel('schedulesPanel'); loadVisitSchedules();">Patient Visit Schedules</button>
+        <button type="button" data-action-code="showPanel('profilePanel'); loadProfile();">Profile</button>
+        <button type="button" data-action-code="showComplaintPanel()">Complaint</button>
+        <button type="button" data-action-code="logout()">Logout</button>
+      </div>
+    </div>
+    <h2>Doctor Dashboard</h2>
+    <button class="refresh-btn" type="button" data-action-code="refreshDashboard()" aria-label="Refresh dashboard">Refresh</button>
+  </div>
+
+  <div class="section" id="patientsPanel">
+    <h3>My Assigned Patients</h3>
+    <p class="muted">Use eligibility and notes for patient-level medical guidance. Time slots and limits remain admin controlled.</p>
+    <div id="patientList"></div>
+  </div>
+
+  <div class="section hidden" id="schedulesPanel">
+    <h3>Patient Visit Schedules</h3>
+    <div id="scheduleList"></div>
+  </div>
+
+  <div class="section hidden" id="profilePanel">
+    <h3>Profile</h3>
+    <form id="profileForm">
+      <input type="text" id="profileFullName" placeholder="Full name" required />
+      <input type="email" id="profileEmail" placeholder="Email" disabled />
+      <input type="date" id="profileBirthDate" required />
+      <textarea id="profileAddress" rows="3" placeholder="Address" required></textarea>
+      <button type="submit" class="btn">Update Profile</button>
+    </form>
+    <button type="button" id="deleteAccountBtn" class="reject" data-action-code="deleteMyAccount()">Delete My Account</button>
+    <div id="profilePhotoPreview"></div>
+    <div id="profileMessage"></div>
+  </div>
+
+  <div class="section hidden" id="complaintPanel">
+    <h3>Complaint</h3>
+    <form id="complaintForm">
+      <input type="text" id="complaintSubject" placeholder="Subject" required />
+      <textarea id="complaintMessageText" rows="5" placeholder="Describe the issue" required></textarea>
+      <button type="submit" class="btn">Submit Complaint</button>
+    </form>
+    <div id="complaintMessage"></div>
+    <h3>My Complaints</h3>
+    <div id="myComplaintsList"></div>
+  </div>
+  <script src="/js/doctor.js"></script>
+<script src="/js/session.js"></script>
+</body>
+</html>
