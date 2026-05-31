@@ -1768,7 +1768,13 @@ app.patch("/api/doctor/patients/:patientId/visit-rules", auth, allowRoles("docto
 
 /* ---------------- FRONTEND ROUTES ---------------- */
 const frontendRoutes = {
-
+"/login": ["common", "login.html"],
+  "/register": ["common", "register.html"],
+  "/login.html": ["common", "login.html"],
+  "/register.html": ["common", "register.html"],
+  "/visitor-dashboard.html": ["visitor", "visitor.html"],
+  "/visitor.html": ["visitor", "visitor.html"],
+  "/visitor-history.html": ["visitor", "visitor-history.html"],
 };
 
 for (const [route, fileParts] of Object.entries(frontendRoutes)) {
