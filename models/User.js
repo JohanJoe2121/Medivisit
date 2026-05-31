@@ -26,9 +26,30 @@ const userSchema = new mongoose.Schema(
     photo: {
       type: String,
       default: ""
+    },
+      
+    patientVisitorCode: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      default: undefined
+    },
+
+    restrictionNote: {
+      type: String,
+      default: ""
     }
+
   },
   { timestamps: true }
+);
+
+userSchema.index(
+  { patientVisitorCode: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { patientVisitorCode: { $exists: true, $type: "string" } }
+  }
 );
 
 module.exports = mongoose.model("User", userSchema);
