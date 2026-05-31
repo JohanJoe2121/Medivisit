@@ -32,6 +32,51 @@ mongoose
     process.exit(1);
   });
 
+function addClient(clientMap, key, res) {
+  const clientKey = String(key);
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+  const clients = clientMap.get(clientKey) || new Map();
+  clients.set(id, res);
+  clientMap.set(clientKey, clients);
+  return id;
+}
+
+function removeClient(clientMap, key, id) {
+  const clientKey = String(key);
+  const clients = clientMap.get(clientKey);
+  if (!clients) return;
+  clients.delete(id);
+  if (clients.size === 0) clientMap.delete(clientKey);
+}
+
+function sendEvent(res, event, data) {
+  res.write(`event: ${event}\n`);
+  res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
+
+function notifyClients(clientMap, key, event, data) {
+  const clients = clientMap.get(String(key));
+  if (!clients) return;
+  for (const res of clients.values()) {
+    sendEvent(res, event, data);
+  }
+}
+
+function notifyVisitRequestChange(visitRequest) {
+  if (!visitRequest) return;
+  notifyClients(visitorStatusClients, visitRequest.visitorId, "visit-request-updated", visitRequest);
+  if (visitRequest.patientId) {
+    notifyClients(patientReviewClients, visitRequest.patientId, "patient-requests-updated", visitRequest);
+  }
+}
+
+async function getEventUser(req) {
+  const rawToken = req.query.token || "";
+  const token = String(rawToken).replace(/^Bearer\s+/i, "");
+  if (!token) return null;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  return User.findById(decoded.id).select("-password");
+}
 
 
 /* ---------------- FRONTEND ROUTES ---------------- */
