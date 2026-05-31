@@ -1711,6 +1711,59 @@ app.patch("/api/admin/escalations/:id/resolve", auth, allowRoles("admin"), async
   }
 });
 
+// Doctor
+app.get("/api/doctor/my-patients", auth, allowRoles("doctor"), async (req, res) => {
+  const patients = await User.find({
+    role: "patient",
+    assignedDoctor: req.user.id
+  }).select("-password");
+
+  res.json(patients);
+});-
+
+app.patch("/api/doctor/patients/:patientId/visit-rules", auth, allowRoles("doctor"), async (req, res) => {
+  try {
+    const { visitEligibility } = req.body;
+    const restrictionNote = String(req.body.restrictionNote || "").trim();
+    const eligibilityMap = {
+      allowed: "Eligible",
+      restricted: "Not Eligible"
+    };
+
+    if (!Object.prototype.hasOwnProperty.call(eligibilityMap, visitEligibility)) {
+      return res.status(400).json({ message: "Visit eligibility must be allowed or restricted." });
+    }
+
+    if (visitEligibility === "restricted" && !restrictionNote) {
+      return res.status(400).json({ message: "Restriction note is required when restricting a patient." });
+    }
+
+    if (restrictionNote.length > 1000) {
+      return res.status(400).json({ message: "Restriction note must be 1000 characters or less." });
+    }
+
+    const patient = await User.findOne({
+      _id: req.params.patientId,
+      role: "patient",
+      assignedDoctor: req.user.id
+    }).select("-password");
+
+    if (!patient) {
+      return res.status(404).json({ message: "Assigned patient not found." });
+    }
+
+    patient.visitEligibilityStatus = eligibilityMap[visitEligibility];
+    patient.restrictionNote = visitEligibility === "allowed" ? "" : restrictionNote;
+    await patient.save();
+
+    return res.json({
+      message: "Patient visit rules saved.",
+      patient
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to save patient visit rules.", error: error.message });
+  }
+});
 
 
 /* ---------------- FRONTEND ROUTES ---------------- */
