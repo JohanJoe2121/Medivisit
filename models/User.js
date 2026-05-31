@@ -12,6 +12,28 @@ const userSchema = new mongoose.Schema(
       required: true
     },
 
+    isActive: { type: Boolean, default: true },
+
+    isDeleted: {
+      type: Boolean,
+      default: false
+    },
+
+    deletedAt: {
+      type: Date,
+      default: null
+    },
+
+    canRegisterAfter: {
+      type: Date,
+      default: null
+    },
+
+    isMainAdmin: {
+      type: Boolean,
+      default: false
+    },
+
     birthDate: {
       type: String,
       default: ""
@@ -27,7 +49,19 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: ""
     },
-      
+
+    assignedDoctor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null
+    },
+
+    visitEligibilityStatus: {
+      type: String,
+      enum: ["Eligible", "Not Eligible"],
+      default: "Eligible"
+    },
+
     patientVisitorCode: {
       type: String,
       trim: true,
@@ -39,7 +73,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: ""
     }
-
   },
   { timestamps: true }
 );
