@@ -1,0 +1,29 @@
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { background: #faf5ff; color: #111827; min-height: 100vh; padding: 20px; overflow-x: hidden; }
+    button, a, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .topbar { background: #7c3aed; color: white; padding: 15px 20px; border-radius: 12px; display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 12px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18); margin-bottom: 20px; }
+    .topbar h2 { text-align: center; font-size: 24px; line-height: 1.2; white-space: nowrap; }
+    .menu-wrap { position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+    .menu-button, .refresh-btn { height: 38px; background: white; color: #7c3aed; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; }
+    .menu-button { width: 38px; }
+    .refresh-btn { justify-self: end; width: auto; padding: 0 10px; font-size: 13px; }
+    .menu { position: absolute; left: 0; top: 52px; min-width: 260px; max-width: calc(100vw - 32px); background: white; border: 1px solid #ddd6fe; border-radius: 14px; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16); padding: 8px; display: none; z-index: 9999; overflow: hidden; }
+    .menu.open { display: block; }
+    .menu a, .menu button { display: flex; align-items: center; gap: 10px; width: 100%; text-decoration: none; background: white; color: #7c3aed; border: none; border-radius: 10px; padding: 11px 12px; font-weight: bold; text-align: left; margin: 0; min-height: 44px; white-space: nowrap; transition: 0.22s ease; }
+    .menu a:hover, .menu button:hover { background: #ede9fe; transform: translateX(4px); }
+    .section { background: white; margin-top: 20px; padding: 20px; border-radius: 16px; border: 1px solid #ddd6fe; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08); }
+    .section h3 { color: #7c3aed; margin-bottom: 10px; }
+    .hidden { display: none; }
+    .card { border: 1px solid #ddd6fe; border-radius: 14px; padding: 14px; margin-top: 12px; background: #faf5ff; }
+    .card p { margin: 7px 0; line-height: 1.45; }
+    .action, .btn, .section button:not(.menu-button):not(.refresh-btn) { display: inline-block; text-decoration: none; background: #7c3aed; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; margin-right: 8px; }
+    .approve { background: #16a34a !important; }
+    .reject { background: #dc2626 !important; }
+    label { display: block; margin-top: 12px; }
+    input, textarea, select { width: 100%; padding: 10px; margin-top: 10px; border-radius: 10px; border: 1px solid #ddd6fe; background: white; }
+    .muted { color: #64748b; line-height: 1.5; }
+    .result { margin-top: 16px; padding: 12px; border-radius: 12px; background: #faf5ff; border: 1px solid #ddd6fe; }
+    .success { color: #15803d; font-weight: bold; }
+    .error { color: #dc2626; font-weight: bold; }
+    @media(max-width: 700px) { body { padding: 14px; } .topbar { grid-template-columns: 40px 1fr auto; padding: 14px 16px; gap: 8px; } .topbar h2 { font-size: 20px; } .menu { top: 48px; min-width: 235px; } .section { padding: 18px; } }
