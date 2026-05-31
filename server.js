@@ -352,6 +352,8 @@ async function expireOldPasses(filter = {}) {
 
 /* ---------------- AUTH ---------------- */
 
+/* ---------------- COMMON ---------------- */
+
 // Register
 
 // ================= ROLE-SPECIFIC API ROUTES =================
@@ -845,7 +847,7 @@ app.patch("/api/visit-requests/:id/cancel", auth, allowRoles("visitor", "admin")
   }
 });
 
-//PATIENT
+/* ---------------- PATIENT ---------------- */
 
 app.post("/api/patient/visitor-code", auth, allowRoles("patient"), async (req, res) => {
   try {
@@ -989,7 +991,7 @@ app.patch("/api/visit-requests/:id/status", auth, allowRoles("patient", "doctor"
   }
 });
 
-//SECURITY PERSONNEL
+/* ---------------- SECURITY PERSONNEL ---------------- */
 app.get("/api/security/approved-visits", auth, allowRoles("security"), async (req, res) => {
   try {
     await expireOldPasses();
@@ -1203,6 +1205,513 @@ app.post("/api/security/exit-pass", auth, allowRoles("security"), async (req, re
     return res.status(500).json({ message: "Failed to record exit.", error: error.message });
   }
 });
+
+/* ---------------- ADMIN ---------------- */
+
+app.delete("/api/account/me", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    if (user.email === "admin@hospital.com" || user.isMainAdmin === true) {
+      return res.status(403).json({ message: "The main admin account cannot be deleted." });
+    }
+
+    const deletedAt = new Date();
+    const canRegisterAfter = new Date(deletedAt.getTime() + 24 * 60 * 60 * 1000);
+
+    user.isDeleted = true;
+    user.deletedAt = deletedAt;
+    user.canRegisterAfter = canRegisterAfter;
+    user.isActive = false;
+    await user.save();
+
+    return res.json({
+      message: "Your account has been deleted. It may take up to 24 hours before you can register again."
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Could not delete account.", error: error.message });
+  }
+});
+
+app.get("/api/hospital-settings", auth, async (req, res) => {
+  try {
+    const settings = await getHospitalSettings();
+    return res.json(settings);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to load hospital settings.", error: error.message });
+  }
+});
+
+app.get("/api/admin/users", auth, allowRoles("admin"), async (req, res) => {
+  try {
+    const users = await User.find().select("-password").sort({ createdAt: -1 }).lean();
+    const usersWithId = users.map(user => ({
+      ...user,
+      id: user._id.toString()
+    }));
+    return res.json(usersWithId);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch users.", error: error.message });
+  }
+});
+
+app.get("/api/admin/users/export-pdf", auth, allowRoles("admin"), async (req, res) => {
+  try {
+    const users = await User.find().select("-password").sort({ role: 1, fullName: 1 }).lean();
+    const lines = [
+      "Medivisit System Users Report",
+      `Generated: ${formatPdfDate(new Date())}`,
+      "",
+      "Full name                     Email                         Role       Status     Created",
+      "------------------------------------------------------------------------------------------"
+    ];
+
+    if (!users.length) {
+      lines.push("No users found.");
+    } else {
+      users.forEach(user => {
+        lines.push(
+          `${truncatePdfCell(user.fullName, 29).padEnd(29)} ` +
+          `${truncatePdfCell(user.email, 29).padEnd(29)} ` +
+          `${truncatePdfCell(user.role, 10).padEnd(10)} ` +
+          `${(user.isActive === false ? "Inactive" : "Active").padEnd(10)} ` +
+          `${user.createdAt ? new Date(user.createdAt).toISOString().slice(0, 10) : "-"}`
+        );
+      });
+    }
+
+    return sendPdf(res, "medivisit-users-report.pdf", lines);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to export users PDF.", error: error.message });
+  }
+});
+
+// Admin activate/deactivate user
+app.patch("/api/admin/users/:id/status", auth, allowRoles("admin"), async (req, res) => {
+  try {
+    const { isActive } = req.body;
+
+    if (typeof isActive !== "boolean") {
+      return res.status(400).json({ message: "isActive must be true or false." });
+    }
+
+    if (req.params.id === req.user.id && isActive === false) {
+      return res.status(400).json({ message: "You cannot deactivate your own admin account." });
+    }
+
+    const user = await User.findById(req.params.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    if ((user.email === "admin@hospital.com" || user.isMainAdmin === true) && isActive === false) {
+      return res.status(400).json({ message: "The main admin account cannot be deactivated." });
+    }
+
+    user.isActive = isActive;
+    await user.save();
+
+    return res.json({
+      message: isActive ? "User activated successfully." : "User deactivated successfully.",
+      user
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update user status.", error: error.message });
+  }
+});
+
+// Admin: all visit requests
+app.get("/api/admin/visit-requests", auth, allowRoles("admin"), async (req, res) => {
+  try {
+    await expireOldPasses();
+    const settings = await getHospitalSettings();
+    const now = new Date();
+    const requests = await VisitRequest.find({
+      status: { $nin: ["Cancelled", "Rejected", "Rejected by Patient", "Rejected by Doctor", "Expired", "Completed", "Checked Out", "Exited"] },
+      exitedAt: null
+    }).sort({ createdAt: -1 });
+
+    const activeRequests = [];
+
+    for (const request of requests) {
+      if (isActiveVisitRequest(request, settings, now)) {
+        activeRequests.push(request);
+        continue;
+      }
+
+      if (!isInactiveVisitRequest(request)) {
+        request.status = "Expired";
+        request.expiresAt = request.expiresAt || getVisitExpiryDate(request, settings);
+        await request.save();
+      }
+    }
+
+    return res.json(activeRequests);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch visit requests.", error: error.message });
+  }
+});
+
+// Admin create admin
+app.post("/api/admin/create-admin", auth, allowRoles("admin"), async (req, res) => {
+  try {
+    const { fullName, email, password, birthDate, address, photo } = req.body;
+
+    if (!fullName || !email || !password || !birthDate || !address) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existingUser) {
+      return res.status(409).json({ message: "User already exists." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const admin = await User.create({
+      fullName: fullName.trim(),
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      role: "admin",
+      birthDate,
+      address: address.trim(),
+      photo: photo || "",
+      isMainAdmin: false
+    });
+
+    return res.status(201).json({
+      message: "Admin account created successfully.",
+      admin: {
+        id: admin._id,
+        fullName: admin.fullName,
+        email: admin.email,
+        role: admin.role,
+        birthDate: admin.birthDate,
+        address: admin.address,
+        photo: admin.photo
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to create admin.", error: error.message });
+  }
+});
+
+app.get("/api/admin/doctors", auth, allowRoles("admin"), async (req, res) => {
+  const doctors = await User.find({ role: "doctor" }).select("-password");
+  res.json(doctors);
+});
+
+app.get("/api/admin/unassigned-patients", auth, allowRoles("admin"), async (req, res) => {
+  const patients = await User.find({
+    role: "patient",
+    assignedDoctor: null
+  }).select("-password");
+
+  res.json(patients);
+});
+
+app.patch("/api/admin/assign-doctor", auth, allowRoles("admin"), async (req, res) => {
+  try {
+    const { patientId, doctorId } = req.body;
+
+    const patient = await User.findOne({ _id: patientId, role: "patient" });
+    const doctor = await User.findOne({ _id: doctorId, role: "doctor" });
+
+    if (!patient) return res.status(404).json({ message: "Patient not found." });
+    if (!doctor) return res.status(404).json({ message: "Doctor not found." });
+
+    patient.assignedDoctor = doctor._id;
+    await patient.save();
+
+    res.json({
+      message: "Patient assigned to doctor successfully.",
+      patient
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Doctor assignment failed.", error: error.message });
+  }
+});
+
+app.patch("/api/admin/visit-requests/:id/override", auth, allowRoles("admin"), async (req, res) => {
+  const request = await VisitRequest.findById(req.params.id);
+
+  if (!request) {
+    return res.status(404).json({ message: "Visit request not found." });
+  }
+
+  const settings = await getHospitalSettings();
+  if (!isActiveVisitRequest(request, settings)) {
+    if (!isInactiveVisitRequest(request)) {
+      request.status = "Expired";
+      request.expiresAt = request.expiresAt || getVisitExpiryDate(request, settings);
+      await request.save();
+    }
+
+    return res.status(400).json({ message: "Only active, non-expired visit requests can be overridden." });
+  }
+
+  request.status = "Approved by Security";
+  request.passCode = request.passCode || generatePassCode();
+  request.expiresAt = request.expiresAt || getVisitExpiryDate(request, settings) || getVisitDayEnd(request.visitDate);
+  request.verifiedBySecurity = true;
+  request.securityApprovedAt = new Date();
+
+  await request.save();
+  notifyVisitRequestChange(request);
+
+  res.json({
+    message: "Visit approval overridden by admin.",
+    request
+  });
+});
+
+app.get("/api/admin/settings", auth, allowRoles("admin"), async (req, res) => {
+  try {
+    const settings = await getHospitalSettings();
+    return res.json(settings);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to load settings.", error: error.message });
+  }
+});
+
+app.put("/api/admin/settings", auth, allowRoles("admin"), async (req, res) => {
+  try {
+    const {
+      visitingHoursStart,
+      visitingHoursEnd,
+      visitorLimitPerPatient,
+      visitDurationMinutes,
+      timeSlots,
+      allowedVisitingDays,
+      emergencyRestrictionsEnabled,
+      emergencyRestrictionMessage
+    } = req.body;
+
+    const settings = await getHospitalSettings();
+
+    const normalizedStart = normalizeTime(visitingHoursStart) || settings.visitingHoursStart;
+    const normalizedEnd = normalizeTime(visitingHoursEnd) || settings.visitingHoursEnd;
+
+    if (normalizedStart >= normalizedEnd) {
+      return res.status(400).json({ message: "Visiting hours start must be before end time." });
+    }
+
+    const normalizedSlots = Array.isArray(timeSlots)
+      ? timeSlots.map(normalizeTime).filter(Boolean)
+      : settings.timeSlots;
+
+    const invalidSlots = normalizedSlots.filter(slot => !isTimeWithinHours(slot, normalizedStart, normalizedEnd));
+    if (invalidSlots.length) {
+      return res.status(400).json({ message: "All time slots must be inside visiting hours." });
+    }
+
+    settings.visitingHoursStart = normalizedStart;
+    settings.visitingHoursEnd = normalizedEnd;
+    settings.visitorLimitPerPatient = Number(visitorLimitPerPatient) > 0 ? Number(visitorLimitPerPatient) : settings.visitorLimitPerPatient;
+    settings.visitDurationMinutes = Number(visitDurationMinutes) > 0 ? Number(visitDurationMinutes) : settings.visitDurationMinutes;
+    settings.timeSlots = Array.isArray(timeSlots)
+      ? [...new Set(normalizedSlots)]
+      : settings.timeSlots;
+    settings.allowedVisitingDays = Array.isArray(allowedVisitingDays)
+      ? allowedVisitingDays.map(Number).filter(day => Number.isInteger(day) && day >= 0 && day <= 6)
+      : settings.allowedVisitingDays;
+    settings.emergencyRestrictionsEnabled = Boolean(emergencyRestrictionsEnabled);
+    settings.emergencyRestrictionMessage = emergencyRestrictionMessage || "";
+
+    await settings.save();
+
+    return res.json({
+      message: "Hospital settings updated successfully.",
+      settings
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update settings.", error: error.message });
+  }
+});
+
+app.get("/api/admin/system-activity", auth, allowRoles("admin"), async (req, res) => {
+  await expireOldPasses();
+  const latestUsers = await User.find().select("-password").sort({ createdAt: -1 }).limit(5);
+  const latestRequests = await VisitRequest.find().sort({ createdAt: -1 }).limit(5);
+
+  res.json({
+    latestUsers,
+    latestRequests
+  });
+});
+
+app.get("/api/admin/system-activity/export-pdf", auth, allowRoles("admin"), async (req, res) => {
+  try {
+    const from = parseVisitDate(req.query.from);
+    const to = parseVisitDate(req.query.to);
+
+    if (!from || !to) {
+      return res.status(400).json({ message: "Valid from and to dates are required." });
+    }
+
+    if (from > to) {
+      return res.status(400).json({ message: "From date must be before or equal to To date." });
+    }
+
+    const rangeEnd = new Date(to);
+    rangeEnd.setHours(23, 59, 59, 999);
+
+    const dateFilter = { $gte: from, $lte: rangeEnd };
+    const users = await User.find({ createdAt: dateFilter }).select("-password").sort({ createdAt: 1 }).lean();
+    const requests = await VisitRequest.find({ createdAt: dateFilter }).sort({ createdAt: 1 }).lean();
+    const activityRows = makeActivityRows(users, requests);
+
+    const lines = [
+      "Medivisit System Activity Report",
+      `From date: ${req.query.from}`,
+      `To date: ${req.query.to}`,
+      `Generated: ${formatPdfDate(new Date())}`,
+      "",
+      "Date/time             User/role                    Action/activity              Status/details",
+      "-----------------------------------------------------------------------------------------------"
+    ];
+
+    if (!activityRows.length) {
+      lines.push("No system activity found for the selected dates.");
+    } else {
+      activityRows.forEach(row => {
+        lines.push(
+          `${truncatePdfCell(formatPdfDate(row.date), 21).padEnd(21)} ` +
+          `${truncatePdfCell(row.user, 28).padEnd(28)} ` +
+          `${truncatePdfCell(row.action, 28).padEnd(28)} ` +
+          `${truncatePdfCell(row.details, 18)}`
+        );
+      });
+    }
+
+    return sendPdf(res, "medivisit-system-activity-report.pdf", lines);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to export system activity PDF.", error: error.message });
+  }
+});
+
+/* ---------------- COMPLAINTS SYSTEM---------------- */
+
+app.post("/api/complaints", auth, allowRoles("visitor", "patient", "doctor", "security"), async (req, res) => {
+  try {
+    const { subject, message } = req.body;
+
+    if (!subject || !message) {
+      return res.status(400).json({ message: "Subject and complaint message are required." });
+    }
+
+    const complaint = await Complaint.create({
+      userId: req.user.id,
+      userName: req.user.fullName,
+      userEmail: req.user.email,
+      userRole: req.user.role,
+      subject: subject.trim(),
+      message: message.trim(),
+      status: "Open"
+    });
+
+    return res.status(201).json({
+      message: "Complaint submitted successfully.",
+      complaint
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to submit complaint.", error: error.message });
+  }
+});
+
+app.get("/api/complaints/my", auth, allowRoles("visitor", "patient", "doctor", "security"), async (req, res) => {
+  try {
+    const complaints = await Complaint.find({
+      userId: req.user.id,
+      userRole: req.user.role
+    }).sort({ createdAt: -1 });
+
+    return res.json(complaints);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to load your complaints.", error: error.message });
+  }
+});
+
+app.get("/api/admin/complaints", auth, allowRoles("admin"), async (req, res) => {
+  try {
+    const complaints = await Complaint.find().sort({ createdAt: -1 });
+    return res.json(complaints);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to load complaints.", error: error.message });
+  }
+});
+
+app.patch("/api/admin/complaints/:id/reply", auth, allowRoles("admin"), async (req, res) => {
+  try {
+    const { adminReply, status } = req.body;
+    const validStatuses = ["Open", "In Progress", "Resolved"];
+
+    if (!adminReply || !adminReply.trim()) {
+      return res.status(400).json({ message: "Reply text is required." });
+    }
+
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid complaint status." });
+    }
+
+    const complaint = await Complaint.findById(req.params.id);
+
+    if (!complaint) {
+      return res.status(404).json({ message: "Complaint not found." });
+    }
+
+    complaint.adminReply = adminReply.trim();
+    complaint.status = status;
+    complaint.repliedBy = req.user.id;
+    complaint.repliedAt = new Date();
+    await complaint.save();
+
+    return res.json({
+      message: "Complaint reply saved.",
+      complaint
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to reply to complaint.", error: error.message });
+  }
+});
+
+app.get("/api/admin/escalations", auth, allowRoles("admin"), async (req, res) => {
+  try {
+    const escalations = await Escalation.find().sort({ createdAt: -1 });
+    return res.json(escalations);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to load escalations.", error: error.message });
+  }
+});
+
+app.patch("/api/admin/escalations/:id/resolve", auth, allowRoles("admin"), async (req, res) => {
+  try {
+    const escalation = await Escalation.findById(req.params.id);
+
+    if (!escalation) {
+      return res.status(404).json({ message: "Escalation not found." });
+    }
+
+    escalation.status = "Resolved";
+    escalation.resolvedAt = new Date();
+    escalation.resolvedBy = req.user.id;
+    await escalation.save();
+
+    return res.json({
+      message: "Escalation marked as resolved.",
+      escalation
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to resolve escalation.", error: error.message });
+  }
+});
+
+
 
 /* ---------------- FRONTEND ROUTES ---------------- */
 const frontendRoutes = {
