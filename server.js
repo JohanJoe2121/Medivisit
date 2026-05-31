@@ -1775,6 +1775,9 @@ const frontendRoutes = {
   "/visitor-dashboard.html": ["visitor", "visitor.html"],
   "/visitor.html": ["visitor", "visitor.html"],
   "/visitor-history.html": ["visitor", "visitor-history.html"],
+  "/doctor-register.html": ["common", "doctor-register.html"],
+"/doctor-dashboard.html": ["doctor", "doctor.html"],
+  "/doctor.html": ["doctor", "doctor.html"],
 };
 
 for (const [route, fileParts] of Object.entries(frontendRoutes)) {
