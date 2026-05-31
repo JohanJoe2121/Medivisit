@@ -1,0 +1,28 @@
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { background: #f0fdf4; color: #111827; min-height: 100vh; padding: 20px; overflow-x: hidden; }
+    button, a, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .topbar { background: #16a34a; color: white; padding: 15px 20px; border-radius: 12px; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 12px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18); margin-bottom: 20px; }
+    .topbar h2 { text-align: center; font-size: 24px; line-height: 1.2; white-space: nowrap; }
+    .menu-wrap { position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+    .menu-button, .refresh-btn { width: 38px; height: 38px; background: white; color: #16a34a; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; transition: 0.22s ease; }
+    .refresh-btn { justify-self: end; font-size: 20px; }
+    .menu { position: absolute; left: 0; top: 52px; min-width: 245px; max-width: calc(100vw - 32px); background: white; border: 1px solid #bbf7d0; border-radius: 14px; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16); padding: 8px; display: none; z-index: 9999; overflow: hidden; }
+    .menu.open { display: block; }
+    .menu a, .menu button { display: flex; align-items: center; gap: 10px; width: 100%; text-decoration: none; background: white; color: #16a34a; border: none; border-radius: 10px; padding: 11px 12px; font-weight: bold; text-align: left; margin: 0; min-height: 44px; white-space: nowrap; transition: 0.22s ease; }
+    .menu a:hover, .menu button:hover { background: #dcfce7; transform: translateX(4px); }
+    .section { background: white; margin-top: 20px; padding: 20px; border-radius: 16px; border: 1px solid #bbf7d0; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08); }
+    .section h3 { color: #16a34a; margin-bottom: 10px; }
+    .hidden { display: none; }
+    .card { border: 1px solid #bbf7d0; border-radius: 14px; padding: 14px; margin-top: 12px; background: #f0fdf4; }
+    .card p { margin: 7px 0; line-height: 1.45; }
+    .action, .btn, .submit-btn, .section button:not(.menu-button):not(.refresh-btn) { display: inline-block; text-decoration: none; background: #16a34a; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; margin-right: 8px; transition: 0.22s ease; }
+    .approve { background: #16a34a !important; }
+    .reject { background: #dc2626 !important; }
+    input, textarea, select { width: 100%; padding: 10px; margin-top: 10px; border-radius: 10px; border: 1px solid #bbf7d0; background: white; }
+    .muted { color: #64748b; line-height: 1.5; }
+    .result { margin-top: 16px; padding: 12px; border-radius: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .success { color: #15803d; font-weight: bold; }
+    .error { color: #dc2626; font-weight: bold; }
+    .code { font-size: 24px; font-weight: bold; letter-spacing: 1px; color: #166534; }
+    @media(max-width: 700px) { body { padding: 14px; } .topbar { grid-template-columns: 40px 1fr 40px; padding: 14px 16px; gap: 8px; } .topbar h2 { font-size: 20px; } .menu { top: 48px; min-width: 235px; } .section { padding: 18px; } }

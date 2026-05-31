@@ -1,0 +1,39 @@
+body {
+      font-family: Arial, sans-serif;
+      background: #fff7ed;
+      margin: 0;
+      padding: 20px;
+    }
+    .topbar {
+      background: #ea580c;
+      color: white;
+      padding: 15px 20px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btns a, .btns button {
+      text-decoration: none;
+      background: white;
+      color: #ea580c;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+    .section {
+      background: white;
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 12px;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 12px;
+      background: #fafafa;
+    }
