@@ -350,6 +350,502 @@ async function expireOldPasses(filter = {}) {
   );
 }
 
+/* ---------------- AUTH ---------------- */
+
+// Register
+
+// ================= ROLE-SPECIFIC API ROUTES =================
+
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const { fullName, email, password, role, birthDate, address, photo } = req.body;
+
+    if (!fullName || !email || !password || !role || !birthDate || !address) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    const allowedRoles = ["visitor", "patient", "doctor", "security", "admin"];
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({ message: "Invalid role selected." });
+    }
+
+    const existingUser = await User.findOne({
+      email: email.toLowerCase().trim()
+    });
+
+    if (existingUser) {
+      if (existingUser.isDeleted === true) {
+        const canRegisterAfter = existingUser.canRegisterAfter ? new Date(existingUser.canRegisterAfter) : null;
+
+        if (canRegisterAfter && canRegisterAfter > new Date()) {
+          return res.status(409).json({
+            message: "This account was recently deleted. Please try registering again after 24 hours."
+          });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        existingUser.fullName = fullName.trim();
+        existingUser.password = hashedPassword;
+        existingUser.role = role;
+        existingUser.birthDate = birthDate;
+        existingUser.address = address.trim();
+        existingUser.photo = photo || "";
+        existingUser.isActive = true;
+        existingUser.isDeleted = false;
+        existingUser.deletedAt = null;
+        existingUser.canRegisterAfter = null;
+        existingUser.isMainAdmin = existingUser.email === "admin@hospital.com";
+        await existingUser.save();
+
+        return res.status(201).json({
+          message: "Registration successful.",
+          user: {
+            id: existingUser._id,
+            fullName: existingUser.fullName,
+            email: existingUser.email,
+            role: existingUser.role,
+            birthDate: existingUser.birthDate,
+            address: existingUser.address,
+            photo: existingUser.photo,
+            isMainAdmin: existingUser.isMainAdmin === true
+          }
+        });
+      }
+
+      return res.status(409).json({ message: "User already exists." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      fullName: fullName.trim(),
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      role,
+      birthDate,
+      address: address.trim(),
+      photo: photo || "",
+      isMainAdmin: email.toLowerCase().trim() === "admin@hospital.com"
+    });
+
+    console.log(
+      `New user registered. MongoDB User ID: ${user._id} | Email: ${user.email} | Role: ${user.role}`
+    );
+
+    return res.status(201).json({
+      message: "Registration successful.",
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        birthDate: user.birthDate,
+        address: user.address,
+        photo: user.photo,
+        isMainAdmin: user.isMainAdmin === true
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Registration failed.",
+      error: error.message
+    });
+  }
+});
+
+// Login
+
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required." });
+    }
+
+    const user = await User.findOne({
+      email: email.toLowerCase().trim()
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
+
+    if (user.isDeleted === true) {
+      return res.status(403).json({ message: "This account has been deleted." });
+    }
+
+    if (user.isActive === false) {
+      return res.status(403).json({ message: "Your account is deactivated. Please contact an admin." });
+    }
+
+    if (user.role === "doctor") {
+      user.role = "doctor";
+      await user.save();
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
+
+    const token = createToken(user);
+
+    console.log(
+      `User logged in. MongoDB User ID: ${user._id} | Email: ${user.email} | Role: ${user.role}`
+    );
+
+    return res.json({
+      message: "Login successful.",
+      token,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        birthDate: user.birthDate,
+        address: user.address,
+        photo: user.photo,
+        isMainAdmin: user.isMainAdmin === true
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Login failed.",
+      error: error.message
+    });
+  }
+});
+
+// Current profile
+
+app.get("/api/auth/me", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+    return res.json(user);
+  } catch (error) {
+    return res.status(500).json({ message: "Could not fetch profile.", error: error.message });
+  }
+});
+
+
+app.patch("/api/auth/profile", auth, async (req, res) => {
+  try {
+    const { fullName, birthDate, address, photo } = req.body;
+
+    if (!fullName || !fullName.trim()) {
+      return res.status(400).json({ message: "Full name is required." });
+    }
+
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    user.fullName = fullName.trim();
+    if (birthDate !== undefined) user.birthDate = String(birthDate || "");
+    if (address !== undefined) user.address = String(address || "").trim();
+    if (photo !== undefined) user.photo = photo || "";
+    await user.save();
+
+    return res.json({
+      message: "Profile updated successfully.",
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        birthDate: user.birthDate,
+        address: user.address,
+        photo: user.photo,
+        isMainAdmin: user.isMainAdmin === true
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Could not update profile.", error: error.message });
+  }
+});
+
+
+
+/* ---------------- VISITOR ---------------- */
+
+//Check for patient
+
+app.get("/api/patients/check", async (req, res) => {
+  try {
+    const patientName = req.query.name?.trim();
+    const patientCode = req.query.code?.trim().toUpperCase();
+
+    if (!patientName && !patientCode) {
+      return res.status(400).json({ message: "Patient name or visitor code is required." });
+    }
+
+    const patientFilter = patientCode
+      ? { role: "patient", patientVisitorCode: patientCode }
+      : {
+          role: "patient",
+          fullName: { $regex: `^${escapeRegex(patientName)}$`, $options: "i" }
+        };
+
+    const patient = await User.findOne(patientFilter).select("-password");
+
+    if (!patient) {
+      return res.status(404).json({
+        exists: false,
+        message: patientCode ? "Patient visitor code was not found." : "Patient not found in database."
+      });
+    }
+
+    return res.json({
+      exists: true,
+      message: "Patient found in database.",
+      patient
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error checking patient.",
+      error: error.message
+    });
+  }
+});
+
+// Create visit request
+
+app.post("/api/visit-requests", auth, allowRoles("visitor"), async (req, res) => {
+  try {
+    const { patientName, patientVisitorCode, visitDate, visitTimeSlot, reason } = req.body;
+
+    if (!visitDate || !visitTimeSlot || !reason || (!patientName && !patientVisitorCode)) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    const settings = await getHospitalSettings();
+
+    if (settings.emergencyRestrictionsEnabled) {
+      return res.status(403).json({
+        message: settings.emergencyRestrictionMessage || "Emergency visitor restrictions are currently enabled. New visit requests are blocked."
+      });
+    }
+
+    const selectedDate = parseVisitDate(visitDate);
+    if (!selectedDate) {
+      return res.status(400).json({ message: "Please select a valid visit date." });
+    }
+
+    if (selectedDate < getDateOnly()) {
+      return res.status(400).json({ message: "Visitors cannot request visits for past dates." });
+    }
+
+    const allowedDays = Array.isArray(settings.allowedVisitingDays)
+      ? settings.allowedVisitingDays
+      : [0, 1, 2, 3, 4, 5, 6];
+
+    if (!allowedDays.includes(selectedDate.getDay())) {
+      return res.status(400).json({ message: "The selected date is outside the hospital's allowed visiting days." });
+    }
+
+    const normalizedTimeSlot = normalizeTime(visitTimeSlot);
+    const timeSlots = (settings.timeSlots || []).map(normalizeTime).filter(Boolean);
+
+    if (timeSlots.length === 0) {
+      return res.status(400).json({ message: "No hospital time slots are currently available. Please contact admin." });
+    }
+
+    if (!normalizedTimeSlot || !timeSlots.includes(normalizedTimeSlot)) {
+      return res.status(400).json({ message: "Please select a valid hospital time slot." });
+    }
+
+    const visitingHoursStart = normalizeTime(settings.visitingHoursStart);
+    const visitingHoursEnd = normalizeTime(settings.visitingHoursEnd);
+
+    if (!isTimeWithinHours(normalizedTimeSlot, visitingHoursStart, visitingHoursEnd)) {
+      return res.status(400).json({ message: "The selected time slot is outside hospital visiting hours." });
+    }
+
+    const patientFilter = patientVisitorCode
+      ? { role: "patient", patientVisitorCode: String(patientVisitorCode).trim().toUpperCase() }
+      : {
+          role: "patient",
+          fullName: { $regex: `^${escapeRegex(patientName.trim())}$`, $options: "i" }
+        };
+
+    const patient = await User.findOne(patientFilter);
+    if (!patient) {
+      return res.status(404).json({ message: "Patient could not be identified. Please check the visitor code." });
+    }
+
+    if (patient.visitEligibilityStatus === "Not Eligible" && patient.restrictionNote) {
+      return res.status(403).json({
+        message: "The patient is currently restricted by their doctor. Please try again later.",
+        restrictionNote: patient.restrictionNote
+      });
+    }
+
+    if (patient.visitEligibilityStatus === "Not Eligible") {
+      return res.status(403).json({ message: "This patient is currently marked not eligible for visitors." });
+    }
+
+    const existingActiveRequest = await VisitRequest.findOne({
+      visitorId: req.user.id,
+      $or: [
+        { patientId: patient._id },
+        { patientName: { $regex: `^${escapeRegex(patient.fullName)}$`, $options: "i" } }
+      ],
+      exitedAt: null,
+      status: {
+        $in: ["Pending", "Approved by Patient", "Approved by Doctor", "Approved by Security"]
+      }
+    });
+
+    if (existingActiveRequest) {
+      return res.status(409).json({
+        message: "You already have an active request for this patient. You can create another request after the current visit is expired or rejected."
+      });
+    }
+
+    const activePatientRequests = await VisitRequest.countDocuments({
+      $or: [
+        { patientId: patient._id },
+        { patientName: { $regex: `^${escapeRegex(patient.fullName)}$`, $options: "i" } }
+      ],
+      visitDate,
+      status: { $in: ["Pending", "Approved by Patient", "Approved by Doctor", "Approved by Security"] }
+    });
+
+    if (activePatientRequests >= settings.visitorLimitPerPatient) {
+      return res.status(409).json({
+        message: "This patient has reached the visitor request limit for the selected date."
+      });
+    }
+
+    const visitRequest = await VisitRequest.create({
+      visitorId: req.user.id,
+      visitorName: req.user.fullName,
+      visitorEmail: req.user.email,
+      patientId: patient._id,
+      patientName: patient.fullName,
+      patientVisitorCode: patient.patientVisitorCode || "",
+      visitDate,
+      visitTimeSlot: normalizedTimeSlot,
+      reason: reason.trim()
+    });
+
+    notifyVisitRequestChange(visitRequest);
+
+    return res.status(201).json({
+      message: "Visit request submitted successfully.",
+      visitRequest
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to submit visit request.", error: error.message });
+  }
+});
+
+// Visitor's own requests
+
+app.get("/api/visit-requests/my", auth, allowRoles("visitor"), async (req, res) => {
+  try {
+    await expireOldPasses({ visitorId: req.user.id });
+    const requests = await VisitRequest.find({ visitorId: req.user.id }).sort({ createdAt: -1 });
+    return res.json(requests);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch requests.", error: error.message });
+  }
+});
+
+// Visitor approved passes
+
+app.get("/api/visit-requests/my-passes", auth, allowRoles("visitor"), async (req, res) => {
+  try {
+    await expireOldPasses({ visitorId: req.user.id });
+    const passes = await VisitRequest.find({
+      visitorId: req.user.id,
+      passCode: { $ne: "" },
+      status: { $nin: ["Expired", "Cancelled"] }
+    }).sort({ createdAt: -1 });
+
+    return res.json(passes);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch passes.", error: error.message });
+  }
+});
+
+app.get("/api/visit-requests/my-latest", auth, allowRoles("visitor"), async (req, res) => {
+  try {
+    await expireOldPasses({ visitorId: req.user.id });
+    const visitRequest = await VisitRequest.findOne({ visitorId: req.user.id }).sort({ createdAt: -1 });
+    return res.json({ visitRequest });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch latest request.", error: error.message });
+  }
+});
+
+app.get("/api/visit-requests/my-latest/events", async (req, res) => {
+  try {
+    const user = await getEventUser(req);
+    if (!user || user.role !== "visitor") {
+      return res.status(401).end();
+    }
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders?.();
+
+    const clientId = addClient(visitorStatusClients, user._id, res);
+    const visitRequest = await VisitRequest.findOne({ visitorId: user._id }).sort({ createdAt: -1 });
+    sendEvent(res, "visit-request-updated", visitRequest || null);
+
+    req.on("close", () => {
+      removeClient(visitorStatusClients, user._id, clientId);
+    });
+  } catch (error) {
+    return res.status(401).end();
+  }
+});
+
+app.patch("/api/visit-requests/:id/cancel", auth, allowRoles("visitor", "admin"), async (req, res) => {
+  try {
+    const visitRequest = await VisitRequest.findById(req.params.id);
+
+    if (!visitRequest) {
+      return res.status(404).json({ message: "Visit request not found." });
+    }
+
+    if (req.user.role === "visitor" && visitRequest.visitorId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "You can only cancel your own visit requests." });
+    }
+
+    await expireVisitIfNeeded(visitRequest);
+
+    if (visitRequest.status === "Expired") {
+      return res.status(409).json({ message: "This pass is already expired.", visitRequest });
+    }
+
+    visitRequest.status = "Cancelled";
+    visitRequest.cancelledAt = new Date();
+    visitRequest.cancelledBy = req.user.role;
+    visitRequest.passCode = "";
+    await visitRequest.save();
+
+    notifyVisitRequestChange(visitRequest);
+
+    return res.json({
+      message: "Visit request cancelled successfully.",
+      visitRequest
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to cancel visit request.", error: error.message });
+  }
+});
+
+
 /* ---------------- FRONTEND ROUTES ---------------- */
 const frontendRoutes = {
 
