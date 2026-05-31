@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Visitor History</title>
+  <link rel="stylesheet" href="/css/visitor-history.css">
+<link rel="stylesheet" href="/css/mobile.css" />
+</head>
+<body>
+  <div class="topbar">
+    <h2>Visitor History</h2>
+    <div class="menu-wrap">
+      <button class="menu-button" type="button" data-action-code="toggleMenu()" aria-label="Open menu">&#9776;</button>
+      <div class="menu" id="historyMenu">
+        <a href="/visitor-dashboard.html">Dashboard</a>
+        <a href="/visitor-profile.html">Profile</a>
+        <a href="/qr-code.html">My QR / Pass</a>
+        <button type="button" data-action-code="refreshHistory()">Refresh</button>
+        <button data-action-code="logout()">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>All Requests</h3>
+    <div id="requestList"></div>
+  </div>
+  <script src="/js/visitor-history.js"></script>
+<script src="/js/session.js"></script>
+</body>
+</html>
